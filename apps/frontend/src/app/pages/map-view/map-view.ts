@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { GoogleMapsService } from '../../services/google-maps.service';
 import { DatabaseService } from '../../services/database.service';
@@ -11,22 +11,34 @@ import { Cafe } from '../../models/cafe.model';
   styleUrl: './map-view.css',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class MapViewComponent implements OnInit, AfterViewInit {
+export class MapViewComponent implements OnInit, AfterViewInit, OnDestroy {
   private googleMapsService = inject(GoogleMapsService);
   private dbService = inject(DatabaseService);
   
   private map: google.maps.Map | null = null;
-  private markers: google.maps.marker.AdvancedMarkerElement[] = [];
+  private markers: (google.maps.marker.AdvancedMarkerElement | google.maps.Marker)[] = [];
   private infoWindow: google.maps.InfoWindow | null = null;
   
   // Signals for reactive state management
   cafes = signal<Cafe[]>([]);
   isLoading = signal(false);
   isMinimalMode = signal(true); // ミニマルモード（POI非表示）
+  searchQuery = signal('');
   
   // Computed values
   cafeCount = computed(() => this.cafes().length);
   mapStyles = computed(() => this.getMapStyles(this.isMinimalMode()));
+  filteredCafes = computed(() => {
+    const query = this.searchQuery().toLowerCase().trim();
+    if (!query) return this.cafes();
+    
+    return this.cafes().filter(cafe =>
+      cafe.name.toLowerCase().includes(query) ||
+      cafe.memo?.toLowerCase().includes(query) ||
+      cafe.location.address?.toLowerCase().includes(query) ||
+      cafe.category.some(cat => cat.toLowerCase().includes(query))
+    );
+  });
 
   ngOnInit() {
     // Google Maps APIの初期化はAfterViewInitで行う
@@ -34,6 +46,10 @@ export class MapViewComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit() {
     this.initializeMap();
+  }
+
+  ngOnDestroy() {
+    this.cleanup();
   }
 
   private async initializeMap() {
@@ -125,8 +141,8 @@ export class MapViewComponent implements OnInit, AfterViewInit {
         this.infoWindow = new google.maps.InfoWindow();
       }
       
-      // 各カフェのマーカーを作成
-      for (const cafe of this.cafes()) {
+      // フィルタリングされたカフェのマーカーを作成
+      for (const cafe of this.filteredCafes()) {
         await this.createCafeMarker(cafe);
       }
       
@@ -206,8 +222,8 @@ export class MapViewComponent implements OnInit, AfterViewInit {
           this.showCafeInfoForStandardMarker(cafe, fallbackMarker);
         });
 
-        // 型変換してマーカー配列に追加（互換性のため）
-        this.markers.push(fallbackMarker as any);
+        // 型安全にマーカー配列に追加
+        this.markers.push(fallbackMarker);
       }
     } catch (error) {
       console.error('Failed to create marker for cafe:', cafe.name, error);
@@ -246,47 +262,125 @@ export class MapViewComponent implements OnInit, AfterViewInit {
     this.infoWindow.open(this.map, marker);
   }
 
-  private createInfoWindowContent(cafe: Cafe): string {
+  private createInfoWindowContent(cafe: Cafe): HTMLElement {
     const stars = '★'.repeat(Math.floor(cafe.rating)) + '☆'.repeat(5 - Math.floor(cafe.rating));
     
-    return `
-      <div class="cafe-info-window" style="max-width: 250px; padding: 8px;">
-        <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: bold;">${cafe.name}</h3>
-        <div style="margin-bottom: 4px;">
-          <span style="color: #fbbf24;">${stars}</span>
-          <span style="margin-left: 4px; color: #6b7280;">${cafe.rating}/5</span>
-        </div>
-        ${cafe.location.address ? `<p style="margin: 4px 0; color: #6b7280; font-size: 14px;">${cafe.location.address}</p>` : ''}
-        ${cafe.memo ? `<p style="margin: 4px 0; font-size: 14px;">${cafe.memo.length > 100 ? cafe.memo.substring(0, 100) + '...' : cafe.memo}</p>` : ''}
-        <div style="margin-top: 8px; display: flex; gap: 8px;">
-          <button onclick="window.location.href='/cafe/${cafe.id}'" style="
-            background-color: #3b82f6;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            cursor: pointer;
-          ">詳細</button>
-          <button onclick="window.location.href='/cafe/${cafe.id}/edit'" style="
-            background-color: #6b7280;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            cursor: pointer;
-          ">編集</button>
-        </div>
-      </div>
+    // セキュアなDOM作成（XSS対策）
+    const container = document.createElement('div');
+    container.className = 'cafe-info-window';
+    container.style.cssText = 'max-width: 250px; padding: 8px;';
+
+    // タイトル
+    const title = document.createElement('h3');
+    title.style.cssText = 'margin: 0 0 8px 0; font-size: 16px; font-weight: bold;';
+    title.textContent = cafe.name;
+    container.appendChild(title);
+
+    // 評価
+    const ratingDiv = document.createElement('div');
+    ratingDiv.style.marginBottom = '4px';
+    
+    const starsSpan = document.createElement('span');
+    starsSpan.style.color = '#fbbf24';
+    starsSpan.textContent = stars;
+    ratingDiv.appendChild(starsSpan);
+    
+    const ratingSpan = document.createElement('span');
+    ratingSpan.style.cssText = 'margin-left: 4px; color: #6b7280;';
+    ratingSpan.textContent = `${cafe.rating}/5`;
+    ratingDiv.appendChild(ratingSpan);
+    
+    container.appendChild(ratingDiv);
+
+    // 住所
+    if (cafe.location.address) {
+      const addressP = document.createElement('p');
+      addressP.style.cssText = 'margin: 4px 0; color: #6b7280; font-size: 14px;';
+      addressP.textContent = cafe.location.address;
+      container.appendChild(addressP);
+    }
+
+    // メモ
+    if (cafe.memo) {
+      const memoP = document.createElement('p');
+      memoP.style.cssText = 'margin: 4px 0; font-size: 14px;';
+      memoP.textContent = cafe.memo.length > 100 ? cafe.memo.substring(0, 100) + '...' : cafe.memo;
+      container.appendChild(memoP);
+    }
+
+    // ボタンコンテナ
+    const buttonDiv = document.createElement('div');
+    buttonDiv.style.cssText = 'margin-top: 8px; display: flex; gap: 8px;';
+
+    // 詳細ボタン（セキュアなイベントハンドラー）
+    const detailButton = document.createElement('button');
+    detailButton.style.cssText = `
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
     `;
+    detailButton.textContent = '詳細';
+    detailButton.addEventListener('click', () => {
+      window.location.href = `/cafe/${cafe.id}`;
+    });
+    buttonDiv.appendChild(detailButton);
+
+    // 編集ボタン（セキュアなイベントハンドラー）
+    const editButton = document.createElement('button');
+    editButton.style.cssText = `
+      background-color: #6b7280;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+    `;
+    editButton.textContent = '編集';
+    editButton.addEventListener('click', () => {
+      window.location.href = `/cafe/${cafe.id}/edit`;
+    });
+    buttonDiv.appendChild(editButton);
+
+    container.appendChild(buttonDiv);
+    return container;
   }
 
   private clearMarkers(): void {
     this.markers.forEach(marker => {
-      marker.map = null;
+      if (marker instanceof google.maps.Marker) {
+        // 標準Markerの場合
+        marker.setMap(null);
+      } else {
+        // AdvancedMarkerElementの場合
+        marker.map = null;
+      }
     });
     this.markers = [];
+  }
+
+  private cleanup(): void {
+    // マーカーとイベントリスナーのクリーンアップ
+    this.clearMarkers();
+    
+    // InfoWindowのクリーンアップ
+    if (this.infoWindow) {
+      this.infoWindow.close();
+      this.infoWindow = null;
+    }
+    
+    // Mapインスタンスのクリーンアップ
+    if (this.map) {
+      // マップのイベントリスナーをクリア
+      google.maps.event.clearInstanceListeners(this.map);
+      this.map = null;
+    }
+    
+    console.log('MapViewComponent cleanup completed');
   }
 
   // 外部からカフェリストを更新する際に使用
@@ -303,6 +397,26 @@ export class MapViewComponent implements OnInit, AfterViewInit {
     this.map.setOptions({ styles: newStyles });
     
     console.log(`Map style changed to: ${this.isMinimalMode() ? 'Minimal' : 'Default'}`);
+  }
+
+  // 検索機能
+  onSearchInput(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.searchQuery.set(target.value);
+    // 検索クエリが変更されたらマーカーを再描画
+    this.updateMarkersForSearch();
+  }
+
+  private async updateMarkersForSearch(): Promise<void> {
+    // 既存のマーカーをクリア
+    this.clearMarkers();
+    
+    // フィルタリングされたカフェのマーカーを再作成
+    for (const cafe of this.filteredCafes()) {
+      await this.createCafeMarker(cafe);
+    }
+    
+    console.log(`${this.filteredCafes().length} filtered cafes displayed`);
   }
 
   // マップスタイルを生成
