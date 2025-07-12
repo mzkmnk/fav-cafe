@@ -39,8 +39,8 @@ export class MapViewComponent implements OnInit, AfterViewInit {
         return;
       }
 
-      // 東京駅を中心とした初期位置
-      const center = { lat: 35.6812, lng: 139.7671 };
+      // 現在地を取得、失敗時は東京駅をデフォルトとして使用
+      const center = await this.getCurrentLocation();
 
       // Map IDを環境変数から取得、なければDEMOを使用
       const mapId = import.meta.env['NG_APP_GOOGLE_MAPS_MAP_ID'] || 'DEMO_MAP_ID';
@@ -50,16 +50,14 @@ export class MapViewComponent implements OnInit, AfterViewInit {
       
       const mapOptions: google.maps.MapOptions = {
         center: center,
-        zoom: 13,
+        zoom: 15, // 現在地なので少しズームイン
         mapId: mapId, // AdvancedMarkerElement用のMap ID
-        mapTypeControl: true,
-        streetViewControl: true,
-        fullscreenControl: true,
-        zoomControl: true,
         styles: customMapStyles, // カスタムスタイルを適用
-        // デフォルトUIを制御
-        disableDefaultUI: false, // 必要に応じてtrueに変更
+        // すべてのデフォルトUIを無効化
+        disableDefaultUI: true,
         clickableIcons: false, // デフォルトアイコンをクリック不可に
+        // 必要最小限のコントロールのみ有効
+        gestureHandling: 'greedy', // スムーズなジェスチャー操作
       };
 
       this.map = await this.googleMapsService.createMap(mapElement, mapOptions);
@@ -75,6 +73,37 @@ export class MapViewComponent implements OnInit, AfterViewInit {
         console.warn('Map ID が無効です。DEMO_MAP_ID を使用していますが、本格運用にはGoogle Cloud ConsoleでMap IDを作成してください。');
       }
     }
+  }
+
+  private async getCurrentLocation(): Promise<google.maps.LatLngLiteral> {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        console.warn('Geolocation is not supported by this browser. Using default location.');
+        resolve({ lat: 35.6812, lng: 139.7671 }); // 東京駅
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const currentLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          console.log('Current location acquired:', currentLocation);
+          resolve(currentLocation);
+        },
+        (error) => {
+          console.warn('Error getting current location:', error.message);
+          console.log('Using default location (Tokyo Station)');
+          resolve({ lat: 35.6812, lng: 139.7671 }); // 東京駅
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000, // 10秒でタイムアウト
+          maximumAge: 300000 // 5分以内のキャッシュ位置を許可
+        }
+      );
+    });
   }
 
   private async loadCafesAndCreateMarkers(): Promise<void> {
