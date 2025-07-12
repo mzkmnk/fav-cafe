@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, inject } from '@angular/core';
+import { Component, OnInit, AfterViewInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { GoogleMapsService } from '../../services/google-maps.service';
 import { DatabaseService } from '../../services/database.service';
@@ -6,10 +6,10 @@ import { Cafe } from '../../models/cafe.model';
 
 @Component({
   selector: 'app-map-view',
-  standalone: true,
   imports: [RouterLink],
   templateUrl: './map-view.html',
-  styleUrl: './map-view.css'
+  styleUrl: './map-view.css',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MapViewComponent implements OnInit, AfterViewInit {
   private googleMapsService = inject(GoogleMapsService);
@@ -19,9 +19,14 @@ export class MapViewComponent implements OnInit, AfterViewInit {
   private markers: google.maps.marker.AdvancedMarkerElement[] = [];
   private infoWindow: google.maps.InfoWindow | null = null;
   
-  cafes: Cafe[] = [];
-  isLoading = false;
-  isMinimalMode = true; // ミニマルモード（POI非表示）
+  // Signals for reactive state management
+  cafes = signal<Cafe[]>([]);
+  isLoading = signal(false);
+  isMinimalMode = signal(true); // ミニマルモード（POI非表示）
+  
+  // Computed values
+  cafeCount = computed(() => this.cafes().length);
+  mapStyles = computed(() => this.getMapStyles(this.isMinimalMode()));
 
   ngOnInit() {
     // Google Maps APIの初期化はAfterViewInitで行う
@@ -45,8 +50,8 @@ export class MapViewComponent implements OnInit, AfterViewInit {
       // Map IDを環境変数から取得、なければDEMOを使用
       const mapId = import.meta.env['NG_APP_GOOGLE_MAPS_MAP_ID'] || 'DEMO_MAP_ID';
       
-      // カスタムスタイルを取得
-      const customMapStyles = this.getMapStyles(this.isMinimalMode);
+      // カスタムスタイルを取得（computed値を使用）
+      const customMapStyles = this.mapStyles();
       
       const mapOptions: google.maps.MapOptions = {
         center: center,
@@ -108,8 +113,9 @@ export class MapViewComponent implements OnInit, AfterViewInit {
 
   private async loadCafesAndCreateMarkers(): Promise<void> {
     try {
-      this.isLoading = true;
-      this.cafes = await this.dbService.getAllCafes();
+      this.isLoading.set(true);
+      const cafesData = await this.dbService.getAllCafes();
+      this.cafes.set(cafesData);
       
       // 既存のマーカーをクリア
       this.clearMarkers();
@@ -120,15 +126,15 @@ export class MapViewComponent implements OnInit, AfterViewInit {
       }
       
       // 各カフェのマーカーを作成
-      for (const cafe of this.cafes) {
+      for (const cafe of this.cafes()) {
         await this.createCafeMarker(cafe);
       }
       
-      console.log(`${this.cafes.length} cafes loaded on map`);
+      console.log(`${this.cafeCount()} cafes loaded on map`);
     } catch (error) {
       console.error('Failed to load cafes:', error);
     } finally {
-      this.isLoading = false;
+      this.isLoading.set(false);
     }
   }
 
@@ -292,11 +298,11 @@ export class MapViewComponent implements OnInit, AfterViewInit {
   toggleMapStyle(): void {
     if (!this.map) return;
     
-    this.isMinimalMode = !this.isMinimalMode;
-    const newStyles = this.getMapStyles(this.isMinimalMode);
+    this.isMinimalMode.set(!this.isMinimalMode());
+    const newStyles = this.mapStyles();
     this.map.setOptions({ styles: newStyles });
     
-    console.log(`Map style changed to: ${this.isMinimalMode ? 'Minimal' : 'Default'}`);
+    console.log(`Map style changed to: ${this.isMinimalMode() ? 'Minimal' : 'Default'}`);
   }
 
   // マップスタイルを生成
