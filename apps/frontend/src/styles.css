@@ -1,1 +1,81 @@
 @import "tailwindcss";
+
+/* PWA用のベーススタイル */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  body {
+    @apply bg-gray-50 text-gray-900 font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* iOS Safari用のviewport調整 */
+  @supports (-webkit-touch-callout: none) {
+    .min-h-screen {
+      min-height: -webkit-fill-available;
+    }
+  }
+}
+
+/* フルスクリーン対応 */
+.fullscreen {
+  @apply h-screen;
+  height: 100vh;
+  height: -webkit-fill-available;
+}
+
+/* セーフエリア対応 */
+.safe-area-inset {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* スクロールバーの非表示 */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* モバイル用のタップハイライト */
+.tap-highlight-none {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 画面の向きに応じたスタイル */
+@media (orientation: portrait) {
+  .portrait-only {
+    @apply block;
+  }
+  
+  .landscape-only {
+    @apply hidden;
+  }
+}
+
+@media (orientation: landscape) {
+  .portrait-only {
+    @apply hidden;
+  }
+  
+  .landscape-only {
+    @apply block;
+  }
+}
+
+/* ダークモード対応（将来的に） */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #1f2937;
+    --text-color: #f9fafb;
+  }
+}
