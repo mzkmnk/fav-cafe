@@ -4,7 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "infra:build": "cd apps/infra && pnpm build",
+    "frontend:start": "cd apps/frontend && pnpm start",
+    "frontend:build": "cd apps/frontend && pnpm build",
+    "frontend:test": "cd apps/frontend && pnpm test"
   },
   "keywords": [],
   "author": "",
