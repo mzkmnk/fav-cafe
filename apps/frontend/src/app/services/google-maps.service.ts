@@ -1,8 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Loader } from '@googlemaps/js-api-loader';
 
-declare let google: any;
-
 @Injectable({
   providedIn: 'root'
 })
@@ -14,7 +12,7 @@ export class GoogleMapsService {
     this.loader = new Loader({
       apiKey: import.meta.env['NG_APP_GOOGLE_MAPS_API_KEY'],
       version: 'weekly',
-      libraries: ['places']
+      libraries: ['places', 'marker']
     });
   }
 
@@ -24,7 +22,9 @@ export class GoogleMapsService {
     }
 
     try {
-      await this.loader.load();
+      await this.loader.importLibrary('maps');
+      await this.loader.importLibrary('places');
+      await this.loader.importLibrary('marker');
       this.isLoaded = true;
     } catch (error) {
       console.error('Error loading Google Maps:', error);
@@ -53,30 +53,32 @@ export class GoogleMapsService {
 
   async createMap(
     element: HTMLElement,
-    options: any
-  ): Promise<any> {
+    options: google.maps.MapOptions
+  ): Promise<google.maps.Map> {
     await this.loadMaps();
     return new google.maps.Map(element, options);
   }
 
   async createMarker(
-    position: any,
-    map: any,
-    options?: any
-  ): Promise<any> {
+    position: google.maps.LatLngLiteral,
+    map: google.maps.Map,
+    options?: { title?: string; content?: Element }
+  ): Promise<google.maps.marker.AdvancedMarkerElement> {
     await this.loadMaps();
-    return new google.maps.Marker({
+    
+    return new google.maps.marker.AdvancedMarkerElement({
       position,
       map,
-      ...options
+      title: options?.title,
+      content: options?.content
     });
   }
 
   async searchPlaces(
     query: string,
-    location?: any,
+    location?: google.maps.LatLngLiteral,
     radius?: number
-  ): Promise<any[]> {
+  ): Promise<google.maps.places.PlaceResult[]> {
     await this.loadMaps();
     
     const service = new google.maps.places.PlacesService(
@@ -84,14 +86,14 @@ export class GoogleMapsService {
     );
 
     return new Promise((resolve, reject) => {
-      const request = {
+      const request: google.maps.places.TextSearchRequest = {
         query,
         location,
         radius: radius || 5000,
         type: 'restaurant'
       };
 
-      service.textSearch(request, (results: any, status: any) => {
+      service.textSearch(request, (results: google.maps.places.PlaceResult[] | null, status: google.maps.places.PlacesServiceStatus) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && results) {
           resolve(results);
         } else {
@@ -101,7 +103,7 @@ export class GoogleMapsService {
     });
   }
 
-  async getPlaceDetails(placeId: string): Promise<any> {
+  async getPlaceDetails(placeId: string): Promise<google.maps.places.PlaceResult> {
     await this.loadMaps();
     
     const service = new google.maps.places.PlacesService(
@@ -109,7 +111,9 @@ export class GoogleMapsService {
     );
 
     return new Promise((resolve, reject) => {
-      service.getDetails({ placeId }, (place: any, status: any) => {
+      const request: google.maps.places.PlaceDetailsRequest = { placeId };
+      
+      service.getDetails(request, (place: google.maps.places.PlaceResult | null, status: google.maps.places.PlacesServiceStatus) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && place) {
           resolve(place);
         } else {
@@ -119,13 +123,15 @@ export class GoogleMapsService {
     });
   }
 
-  async geocodeAddress(address: string): Promise<any[]> {
+  async geocodeAddress(address: string): Promise<google.maps.GeocoderResult[]> {
     await this.loadMaps();
     
     const geocoder = new google.maps.Geocoder();
     
     return new Promise((resolve, reject) => {
-      geocoder.geocode({ address }, (results: any, status: any) => {
+      const request: google.maps.GeocoderRequest = { address };
+      
+      geocoder.geocode(request, (results: google.maps.GeocoderResult[] | null, status: google.maps.GeocoderStatus) => {
         if (status === google.maps.GeocoderStatus.OK && results) {
           resolve(results);
         } else {
