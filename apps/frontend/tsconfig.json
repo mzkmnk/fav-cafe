@@ -14,7 +14,7 @@
     "importHelpers": true,
     "target": "ES2022",
     "module": "preserve",
-    "types": ["google.maps"]
+    "types": ["google.maps","node"]
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,
