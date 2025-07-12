@@ -3,6 +3,7 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import { Construct } from 'constructs';
 
 export class InfraStack extends cdk.Stack {
@@ -66,6 +67,14 @@ export class InfraStack extends cdk.Stack {
     });
 
     websiteBucket.addToResourcePolicy(bucketPolicyStatement);
+
+    // フロントエンドファイルをS3にデプロイ
+    new s3deploy.BucketDeployment(this, 'DeployWebsite', {
+      sources: [s3deploy.Source.asset('../frontend/dist/frontend')],
+      destinationBucket: websiteBucket,
+      distribution,
+      distributionPaths: ['/*'],
+    });
 
     // 出力
     new cdk.CfnOutput(this, 'BucketName', {

@@ -6,9 +6,15 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "infra:build": "cd apps/infra && pnpm build",
+    "infra:synth": "cd apps/infra && pnpm synth",
+    "infra:deploy": "pnpm frontend:build && pnpm infra:build && cd apps/infra && pnpm deploy",
+    "infra:deploy:only": "cd apps/infra && pnpm deploy",
+    "infra:diff": "cd apps/infra && pnpm diff",
+    "infra:destroy": "cd apps/infra && pnpm destroy",
     "frontend:start": "cd apps/frontend && pnpm start",
     "frontend:build": "cd apps/frontend && pnpm build",
-    "frontend:test": "cd apps/frontend && pnpm test"
+    "frontend:test": "cd apps/frontend && pnpm test",
+    "deploy": "pnpm infra:deploy"
   },
   "keywords": [],
   "author": "",

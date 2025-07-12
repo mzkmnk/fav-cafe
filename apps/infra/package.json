@@ -8,7 +8,13 @@
     "build": "tsc",
     "watch": "tsc -w",
     "test": "jest",
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "synth": "cdk synth",
+    "deploy": "cdk deploy --require-approval never",
+    "deploy:profile": "cdk deploy --profile",
+    "deploy:full": "cd ../frontend && pnpm build && cd ../infra && pnpm build && cdk deploy --require-approval never",
+    "diff": "cdk diff",
+    "destroy": "cdk destroy"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
