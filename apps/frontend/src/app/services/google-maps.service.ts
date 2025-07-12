@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import { Loader } from '@googlemaps/js-api-loader';
 import { environment } from '../../environments/environment';
 
+declare let google: any;
+
 @Injectable({
   providedIn: 'root'
 })
@@ -52,17 +54,17 @@ export class GoogleMapsService {
 
   async createMap(
     element: HTMLElement,
-    options: google.maps.MapOptions
-  ): Promise<google.maps.Map> {
+    options: any
+  ): Promise<any> {
     await this.loadMaps();
     return new google.maps.Map(element, options);
   }
 
   async createMarker(
-    position: google.maps.LatLng | google.maps.LatLngLiteral,
-    map: google.maps.Map,
-    options?: google.maps.MarkerOptions
-  ): Promise<google.maps.Marker> {
+    position: any,
+    map: any,
+    options?: any
+  ): Promise<any> {
     await this.loadMaps();
     return new google.maps.Marker({
       position,
@@ -73,9 +75,9 @@ export class GoogleMapsService {
 
   async searchPlaces(
     query: string,
-    location?: google.maps.LatLng | google.maps.LatLngLiteral,
+    location?: any,
     radius?: number
-  ): Promise<google.maps.places.PlaceResult[]> {
+  ): Promise<any[]> {
     await this.loadMaps();
     
     const service = new google.maps.places.PlacesService(
@@ -83,14 +85,14 @@ export class GoogleMapsService {
     );
 
     return new Promise((resolve, reject) => {
-      const request: google.maps.places.TextSearchRequest = {
+      const request = {
         query,
         location,
         radius: radius || 5000,
         type: 'restaurant'
       };
 
-      service.textSearch(request, (results, status) => {
+      service.textSearch(request, (results: any, status: any) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && results) {
           resolve(results);
         } else {
@@ -100,7 +102,7 @@ export class GoogleMapsService {
     });
   }
 
-  async getPlaceDetails(placeId: string): Promise<google.maps.places.PlaceResult> {
+  async getPlaceDetails(placeId: string): Promise<any> {
     await this.loadMaps();
     
     const service = new google.maps.places.PlacesService(
@@ -108,7 +110,7 @@ export class GoogleMapsService {
     );
 
     return new Promise((resolve, reject) => {
-      service.getDetails({ placeId }, (place, status) => {
+      service.getDetails({ placeId }, (place: any, status: any) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && place) {
           resolve(place);
         } else {
@@ -118,13 +120,13 @@ export class GoogleMapsService {
     });
   }
 
-  async geocodeAddress(address: string): Promise<google.maps.GeocoderResult[]> {
+  async geocodeAddress(address: string): Promise<any[]> {
     await this.loadMaps();
     
     const geocoder = new google.maps.Geocoder();
     
     return new Promise((resolve, reject) => {
-      geocoder.geocode({ address }, (results, status) => {
+      geocoder.geocode({ address }, (results: any, status: any) => {
         if (status === google.maps.GeocoderStatus.OK && results) {
           resolve(results);
         } else {

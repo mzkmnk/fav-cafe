@@ -57,9 +57,5 @@ module.exports = {
       '2xl': '1536px',
     },
   },
-  plugins: [
-    require('@tailwindcss/forms'),
-    require('@tailwindcss/aspect-ratio'),
-    require('@tailwindcss/typography'),
-  ],
+  plugins: [],
 }; 
