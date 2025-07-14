@@ -4,60 +4,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Architecture
 
-This is a monorepo using pnpm workspaces with two main applications:
-
-- **`apps/frontend/`** - Angular 20 application with standalone components
-- **`apps/infra/`** - AWS CDK infrastructure as code in TypeScript
-
-The workspace is managed via `pnpm-workspace.yaml` with packages under `apps/*`.
+This is an Angular 20 application with standalone components.
 
 ## Build and Development Commands
 
-Run from the root directory:
-
 ```bash
-# Infrastructure (CDK)
-pnpm infra:build          # Compile TypeScript to JavaScript
+# Development
+pnpm start                # Start development server (http://localhost:4200)
+ng serve                  # Alternative: start development server
 
-# Frontend (Angular)
-pnpm frontend:start       # Start development server (http://localhost:4200)
-pnpm frontend:build       # Build for production
-pnpm frontend:test        # Run unit tests with Karma
+# Build
+pnpm build                # Build for production
+ng build                  # Alternative: build for production
 
-# From individual app directories
-cd apps/infra && pnpm build   # CDK build
-cd apps/infra && pnpm test    # Jest tests
-cd apps/infra && pnpm cdk     # CDK CLI commands
+# Testing
+pnpm test                 # Run unit tests with Karma
+ng test                   # Alternative: run tests
 
-cd apps/frontend && ng serve  # Angular dev server
-cd apps/frontend && ng test   # Run tests
-cd apps/frontend && ng build  # Build
+# Other
+ng build --watch          # Build with file watching
 ```
 
-## CDK Infrastructure
-
-- Entry point: `apps/infra/bin/infra.ts`
-- Main stack: `apps/infra/lib/infra-stack.ts` (currently empty template)
-- CDK version: 2.190.0
-- Uses TypeScript compilation via `tsc`
-
-CDK commands must be run from the `apps/infra` directory.
-
-## Angular Frontend
+## Angular Application
 
 - Uses Angular 20 with standalone components (no NgModules)
-- Main component: `apps/frontend/src/app/app.ts`
-- Application config: `apps/frontend/src/app/app.config.ts`
-- Routing configured in `apps/frontend/src/app/app.routes.ts`
+- Main component: `src/app/app.ts`
+- Application config: `src/app/app.config.ts`
+- Routing configured in `src/app/app.routes.ts`
 - Component prefix: `app`
 - Testing: Karma + Jasmine
 
-Angular CLI commands must be run from the `apps/frontend` directory or use the root-level pnpm scripts.
-
 ## Package Management
 
-- Uses pnpm with workspace configuration
-- Each app maintains its own `package.json`
+- Uses pnpm as the package manager
 - Lock file: `pnpm-lock.yaml` at root level
 
 ### Test-Driven Development (TDD)
