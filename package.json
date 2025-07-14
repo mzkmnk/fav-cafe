@@ -1,17 +1,46 @@
 {
   "name": "fav-cafe",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "infra:build": "cd apps/infra && pnpm build",
-    "frontend:start": "cd apps/frontend && pnpm start",
-    "frontend:build": "cd apps/frontend && pnpm build",
-    "frontend:test": "cd apps/frontend && pnpm test"
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@10.11.0"
+  "private": true,
+  "packageManager": "pnpm@10.11.0",
+  "dependencies": {
+    "@angular/common": "^20.0.0",
+    "@angular/compiler": "^20.0.0",
+    "@angular/core": "^20.0.0",
+    "@angular/forms": "^20.0.0",
+    "@angular/platform-browser": "^20.0.0",
+    "@angular/pwa": "^20.1.0",
+    "@angular/router": "^20.0.0",
+    "@angular/service-worker": "^20.0.0",
+    "@googlemaps/js-api-loader": "^1.16.10",
+    "dexie": "^4.0.11",
+    "dexie-observable": "^4.0.1-beta.13",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0",
+    "zone.js": "~0.15.0"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "20.0.0",
+    "@angular/build": "^20.0.0",
+    "@angular/cli": "^20.0.0",
+    "@angular/compiler-cli": "^20.0.0",
+    "@ngx-env/builder": "20.0.0",
+    "tailwindcss": "^3.4.0",
+    "@types/google.maps": "^3.58.1",
+    "@types/jasmine": "~5.1.0",
+    "jasmine-core": "~5.7.0",
+    "karma": "~6.4.0",
+    "karma-chrome-launcher": "~3.2.0",
+    "karma-coverage": "~2.2.0",
+    "karma-jasmine": "~5.1.0",
+    "karma-jasmine-html-reporter": "~2.1.0",
+    "typescript": "~5.8.2"
+  }
 }
